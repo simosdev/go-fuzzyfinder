@@ -76,6 +76,7 @@ type finder struct {
 	drawTimer *time.Timer
 	eventCh   chan struct{}
 	opt       *opt
+	previewCancel context.CancelFunc
 
 	termEventsChan <-chan tcell.Event
 }
@@ -150,11 +151,29 @@ func (f *finder) initFinder(items []string, matched []matching.Matched, opt opt)
 			f.stateMu.Lock()
 			f._draw()
 			if f.opt.previewFunc != nil {
+				// Cancel logic will prevent stacking term
+				// preview draws in case of delays and user
+				// navigating to another entry.
+				// This does not yet cancel the user side previewFunc execution.
+				if f.previewCancel != nil {
+					f.previewCancel()
+				}
+				ctx, cancel := context.WithCancel(context.Background())
+				f.previewCancel = cancel
 				idx, width, height := f.determinePreviewFuncArgs()
 				go func() {
-					val := f.opt.previewFunc(idx, width, height)
-					f._drawPreviewWithValue(val, width, height)
-					f.term.Show()
+					valChan := make(chan string, 1)
+					go func() {
+						valChan <- f.opt.previewFunc(idx, width, height)
+					}()
+
+					select {
+					case <- ctx.Done():
+						return
+					case val := <-valChan:
+						f._drawPreviewWithValue(val, width, height)
+						f.term.Show()
+					}
 				}()
 			}
 			f.stateMu.Unlock()
