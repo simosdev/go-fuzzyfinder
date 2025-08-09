@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ktr0731/go-fuzzyfinder/matching"
+	"github.com/simosdev/go-fuzzyfinder/matching"
 )
 
 func TestMatch(t *testing.T) {

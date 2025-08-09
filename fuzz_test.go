@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/gdamore/tcell/v2"
-	fuzzyfinder "github.com/ktr0731/go-fuzzyfinder"
+	fuzzyfinder "github.com/simosdev/go-fuzzyfinder"
 )
 
 func FuzzPreviewWindow(f *testing.F) {
