@@ -149,7 +149,14 @@ func (f *finder) initFinder(items []string, matched []matching.Matched, opt opt)
 		f.drawTimer = time.AfterFunc(0, func() {
 			f.stateMu.Lock()
 			f._draw()
-			f._drawPreview()
+			if f.opt.previewFunc != nil {
+				idx, width, height := f.determinePreviewFuncArgs()
+				go func() {
+					val := f.opt.previewFunc(idx, width, height)
+					f._drawPreviewWithValue(val, width, height)
+					f.term.Show()
+				}()
+			}
 			f.stateMu.Unlock()
 			f.term.Show()
 		})
@@ -323,6 +330,161 @@ func (f *finder) _draw() {
 				break
 			} else {
 				f.term.SetContent(w, maxHeight-1-i, r, nil, style)
+				w += rw
+			}
+		}
+	}
+}
+
+// Call to get valules for "_drawPreviewWithValue".
+// Requires read lock for f.state.
+func (f *finder) determinePreviewFuncArgs() (int, int, int) {
+	width, height := f.term.Size()
+	var idx int
+	if len(f.state.matched) == 0 {
+		idx = -1
+	} else {
+		idx = f.state.matched[f.state.y].Idx
+	}
+	return idx, width, height
+}
+
+// f.opt.previewFunc should be called before and return value passed as "val"
+// This function does not use f.state to avoid locks.
+// Sets f.term content.
+func (f *finder) _drawPreviewWithValue(val string, width,  height int) {
+	iter := ansisgr.NewIterator(val)
+
+	// top line
+	for i := width / 2; i < width; i++ {
+		var r rune
+		switch {
+		case i == width/2:
+			r = '┌'
+		case i == width-1:
+			r = '┐'
+		default:
+			r = '─'
+		}
+
+		style := tcell.StyleDefault.
+			Foreground(tcell.ColorBlack).
+			Background(tcell.ColorDefault)
+
+		f.term.SetContent(i, 0, r, nil, style)
+	}
+	// bottom line
+	for i := width / 2; i < width; i++ {
+		var r rune
+		switch {
+		case i == width/2:
+			r = '└'
+		case i == width-1:
+			r = '┘'
+		default:
+			r = '─'
+		}
+
+		style := tcell.StyleDefault.
+			Foreground(tcell.ColorBlack).
+			Background(tcell.ColorDefault)
+
+		f.term.SetContent(i, height-1, r, nil, style)
+	}
+	// Start with h=1 to exclude each corner rune.
+	const vline = '│'
+	var wvline = runewidth.RuneWidth(vline)
+	for h := 1; h < height-1; h++ {
+		// donePreviewLine indicates the preview string of the current line identified by h is already drawn.
+		var donePreviewLine bool
+		w := width / 2
+		for i := width / 2; i < width; i++ {
+			switch {
+			// Left vertical line.
+			case i == width/2:
+				style := tcell.StyleDefault.
+					Foreground(tcell.ColorBlack).
+					Background(tcell.ColorDefault)
+				f.term.SetContent(i, h, vline, nil, style)
+				w += wvline
+			// Right vertical line.
+			case i == width-1:
+				style := tcell.StyleDefault.
+					Foreground(tcell.ColorBlack).
+					Background(tcell.ColorDefault)
+				f.term.SetContent(i, h, vline, nil, style)
+				w += wvline
+			// Spaces between left and right vertical lines.
+			case w == width/2+wvline, w == width-1-wvline:
+				style := tcell.StyleDefault.
+					Foreground(tcell.ColorDefault).
+					Background(tcell.ColorDefault)
+
+				f.term.SetContent(w, h, ' ', nil, style)
+				w++
+			default: // Preview text
+				if donePreviewLine {
+					continue
+				}
+
+				r, rstyle, ok := iter.Next()
+				if !ok || r == '\n' {
+					// Consumed all preview characters.
+					donePreviewLine = true
+					continue
+				}
+
+				rw := runewidth.RuneWidth(r)
+				if w+rw > width-1-2 {
+					donePreviewLine = true
+
+					// Discard the rest of the current line.
+					consumeIterator(iter, '\n')
+
+					style := tcell.StyleDefault.
+						Foreground(tcell.ColorDefault).
+						Background(tcell.ColorDefault)
+
+					f.term.SetContent(w, h, '.', nil, style)
+					f.term.SetContent(w+1, h, '.', nil, style)
+
+					w += 2
+					continue
+				}
+
+				style := tcell.StyleDefault
+				if color, ok := rstyle.Foreground(); ok {
+					switch color.Mode() {
+					case ansisgr.Mode16:
+						style = style.Foreground(tcell.PaletteColor(color.Value() - 30))
+					case ansisgr.Mode256:
+						style = style.Foreground(tcell.PaletteColor(color.Value()))
+					case ansisgr.ModeRGB:
+						r, g, b := color.RGB()
+						style = style.Foreground(tcell.NewRGBColor(int32(r), int32(g), int32(b)))
+					}
+				}
+				if color, valid := rstyle.Background(); valid {
+					switch color.Mode() {
+					case ansisgr.Mode16:
+						style = style.Background(tcell.PaletteColor(color.Value() - 40))
+					case ansisgr.Mode256:
+						style = style.Background(tcell.PaletteColor(color.Value()))
+					case ansisgr.ModeRGB:
+						r, g, b := color.RGB()
+						style = style.Background(tcell.NewRGBColor(int32(r), int32(g), int32(b)))
+					}
+				}
+
+				style = style.
+					Bold(rstyle.Bold()).
+					Dim(rstyle.Dim()).
+					Italic(rstyle.Italic()).
+					Underline(rstyle.Underline()).
+					Blink(rstyle.Blink()).
+					Reverse(rstyle.Reverse()).
+					StrikeThrough(rstyle.Strikethrough())
+				f.term.SetContent(w, h, r, nil, style)
 				w += rw
 			}
 		}
