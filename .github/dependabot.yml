@@ -7,7 +7,7 @@ updates:
     labels:
       - dependency
     reviewers:
-      - ktr0731
+      - simosdev
   - package-ecosystem: gomod
     directory: /
     schedule:
@@ -15,4 +15,4 @@ updates:
     labels:
       - dependency
     reviewers:
-      - ktr0731
+      - simosdev
