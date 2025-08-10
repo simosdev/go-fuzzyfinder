@@ -15,8 +15,8 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/google/go-cmp/cmp"
-	fuzzyfinder "github.com/simosdev/go-fuzzyfinder"
 	"github.com/pkg/errors"
+	fuzzyfinder "github.com/simosdev/go-fuzzyfinder"
 )
 
 var (

@@ -6,19 +6,19 @@ import (
 )
 
 type opt struct {
-	mode          mode
-	previewFunc   func(i, width, height int) string
+	mode               mode
+	previewFunc        func(i, width, height int) string
 	previewContextFunc func(ctx context.Context, i, width, height int) string
-	multi         bool
-	hotReload     bool
-	hotReloadLock sync.Locker
-	promptString  string
-	header        string
-	beginAtTop    bool
-	context       context.Context
-	query         string
-	selectOne     bool
-	preselected   func(i int) bool
+	multi              bool
+	hotReload          bool
+	hotReloadLock      sync.Locker
+	promptString       string
+	header             string
+	beginAtTop         bool
+	context            context.Context
+	query              string
+	selectOne          bool
+	preselected        func(i int) bool
 }
 
 type mode int

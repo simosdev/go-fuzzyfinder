@@ -17,9 +17,9 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/ktr0731/go-ansisgr"
-	"github.com/simosdev/go-fuzzyfinder/matching"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/pkg/errors"
+	"github.com/simosdev/go-fuzzyfinder/matching"
 )
 
 var (
@@ -70,12 +70,12 @@ type state struct {
 }
 
 type finder struct {
-	term      terminal
-	stateMu   sync.RWMutex
-	state     state
-	drawTimer *time.Timer
-	eventCh   chan struct{}
-	opt       *opt
+	term          terminal
+	stateMu       sync.RWMutex
+	state         state
+	drawTimer     *time.Timer
+	eventCh       chan struct{}
+	opt           *opt
 	previewCancel context.CancelFunc
 
 	termEventsChan <-chan tcell.Event
@@ -172,7 +172,7 @@ func (f *finder) initFinder(items []string, matched []matching.Matched, opt opt)
 					}()
 
 					select {
-					case <- ctx.Done():
+					case <-ctx.Done():
 						return
 					case val := <-valChan:
 						f._drawPreviewWithValue(val, width, height)
@@ -375,7 +375,7 @@ func (f *finder) determinePreviewFuncArgs() (int, int, int) {
 // f.opt.previewFunc should be called before and return value passed as "val"
 // This function does not use f.state to avoid locks.
 // Sets f.term content.
-func (f *finder) _drawPreviewWithValue(val string, width,  height int) {
+func (f *finder) _drawPreviewWithValue(val string, width, height int) {
 	iter := ansisgr.NewIterator(val)
 
 	// top line
