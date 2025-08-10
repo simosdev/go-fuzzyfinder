@@ -8,6 +8,7 @@ import (
 type opt struct {
 	mode          mode
 	previewFunc   func(i, width, height int) string
+	previewContextFunc func(ctx context.Context, i, width, height int) string
 	multi         bool
 	hotReload     bool
 	hotReloadLock sync.Locker
@@ -60,6 +61,16 @@ func WithMode(m mode) Option {
 func WithPreviewWindow(f func(i, width, height int) string) Option {
 	return func(o *opt) {
 		o.previewFunc = f
+	}
+}
+
+// WithPreviewWindowContext is like "WithPreviewWindow" but allows cancelling
+// the preview callback if user navigates to another item.
+// If Both "WithPreviewWindowContext" and "WithPreviewWindow" are defined with
+// value for "f", "WithPreviewWindowContext" will be used.
+func WithPreviewWindowContext(f func(ctx context.Context, i, width, height int) string) Option {
+	return func(o *opt) {
+		o.previewContextFunc = f
 	}
 }
 

@@ -150,7 +150,7 @@ func (f *finder) initFinder(items []string, matched []matching.Matched, opt opt)
 		f.drawTimer = time.AfterFunc(0, func() {
 			f.stateMu.Lock()
 			f._draw()
-			if f.opt.previewFunc != nil {
+			if f.opt.previewFunc != nil || f.opt.previewContextFunc != nil {
 				// Cancel logic will prevent stacking term
 				// preview draws in case of delays and user
 				// navigating to another entry.
@@ -164,7 +164,11 @@ func (f *finder) initFinder(items []string, matched []matching.Matched, opt opt)
 				go func() {
 					valChan := make(chan string, 1)
 					go func() {
-						valChan <- f.opt.previewFunc(idx, width, height)
+						if f.opt.previewContextFunc != nil {
+							valChan <- f.opt.previewContextFunc(ctx, idx, width, height)
+						} else {
+							valChan <- f.opt.previewFunc(idx, width, height)
+						}
 					}()
 
 					select {
