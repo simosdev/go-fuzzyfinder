@@ -161,6 +161,11 @@ func (f *finder) initFinder(items []string, matched []matching.Matched, opt opt)
 				ctx, cancel := context.WithCancel(context.Background())
 				f.previewCancel = cancel
 				idx, width, height := f.determinePreviewFuncArgs()
+				if f.opt.previewLoadingFunc != nil {
+					loadingText := f.opt.previewLoadingFunc(idx, width, height)
+					f._drawPreviewWithValue(loadingText, width, height)
+					f.term.Show()
+				}
 				go func() {
 					valChan := make(chan string, 1)
 					go func() {
@@ -175,6 +180,10 @@ func (f *finder) initFinder(items []string, matched []matching.Matched, opt opt)
 					case <-ctx.Done():
 						return
 					case val := <-valChan:
+						if f.opt.previewLoadingFunc != nil {
+							// call draw again to reset placeholder loading preview text
+							f._draw()
+						}
 						f._drawPreviewWithValue(val, width, height)
 						f.term.Show()
 					}

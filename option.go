@@ -9,6 +9,7 @@ type opt struct {
 	mode               mode
 	previewFunc        func(i, width, height int) string
 	previewContextFunc func(ctx context.Context, i, width, height int) string
+	previewLoadingFunc func(i, width, height int) string
 	multi              bool
 	hotReload          bool
 	hotReloadLock      sync.Locker
@@ -71,6 +72,13 @@ func WithPreviewWindow(f func(i, width, height int) string) Option {
 func WithPreviewWindowContext(f func(ctx context.Context, i, width, height int) string) Option {
 	return func(o *opt) {
 		o.previewContextFunc = f
+	}
+}
+
+// WithPreviewLoading provides optional preview text when waiting for actual preview text to finish generating.
+func WithPreviewLoading(f func(i, width, height int) string) Option {
+	return func(o *opt) {
+		o.previewLoadingFunc = f
 	}
 }
 
