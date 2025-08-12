@@ -167,6 +167,13 @@ func (f *finder) initFinder(items []string, matched []matching.Matched, opt opt)
 					f.term.Show()
 				}
 				go func() {
+					// Updates should be called only from user supplied preview func.
+					var updChan <-chan string
+					if f.opt.previewLoadingUpdateChan != nil {
+						updChan = f.opt.previewLoadingUpdateChan
+					} else {
+						updChan = make(chan string)
+					}
 					valChan := make(chan string, 1)
 					go func() {
 						if f.opt.previewContextFunc != nil {
@@ -176,16 +183,24 @@ func (f *finder) initFinder(items []string, matched []matching.Matched, opt opt)
 						}
 					}()
 
-					select {
-					case <-ctx.Done():
-						return
-					case val := <-valChan:
-						if f.opt.previewLoadingFunc != nil {
-							// call draw again to reset placeholder loading preview text
+				outer:
+					for {
+						select {
+						case upd := <-updChan:
 							f._draw()
+							f._drawPreviewWithValue(upd, width, height)
+							f.term.Show()
+						case <-ctx.Done():
+							break outer
+						case val := <-valChan:
+							if f.opt.previewLoadingFunc != nil || f.opt.previewLoadingUpdateChan != nil {
+								// call draw again to reset placeholder loading preview text
+								f._draw()
+							}
+							f._drawPreviewWithValue(val, width, height)
+							f.term.Show()
+							break outer
 						}
-						f._drawPreviewWithValue(val, width, height)
-						f.term.Show()
 					}
 				}()
 			}
