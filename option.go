@@ -3,6 +3,8 @@ package fuzzyfinder
 import (
 	"context"
 	"sync"
+
+	"github.com/gdamore/tcell/v2"
 )
 
 type opt struct {
@@ -12,6 +14,7 @@ type opt struct {
 	previewLoadingFunc func(i, width, height int) string
 	// previewLoadingUpdateChan can be nil
 	previewLoadingUpdateChan <-chan string
+	customTty                tcell.Tty
 	multi                    bool
 	hotReload                bool
 	hotReloadLock            sync.Locker
@@ -88,6 +91,14 @@ func WithPreviewLoading(f func(i, width, height int) string) Option {
 func WithPreviewLoadingUpdateChan(c chan string) Option {
 	return func(o *opt) {
 		o.previewLoadingUpdateChan = c
+	}
+}
+
+// WithCustomTty sets custom tty for handling stdin, stdout.
+// Needed if using fuzzyfinder via SSH server.
+func WithCustomTty(tty tcell.Tty) Option {
+	return func(o *opt) {
+		o.customTty = tty
 	}
 }
 

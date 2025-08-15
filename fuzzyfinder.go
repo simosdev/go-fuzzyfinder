@@ -87,10 +87,21 @@ func newFinder() *finder {
 
 func (f *finder) initFinder(items []string, matched []matching.Matched, opt opt) error {
 	if f.term == nil {
-		screen, err := tcell.NewScreen()
-		if err != nil {
-			return errors.Wrap(err, "failed to new screen")
+		var screen tcell.Screen
+		if opt.customTty != nil {
+			s, err := tcell.NewTerminfoScreenFromTty(opt.customTty)
+			if err != nil {
+				return errors.Wrap(err, "failed to new screen from tty")
+			}
+			screen = s
+		} else {
+			s, err := tcell.NewScreen()
+			if err != nil {
+				return errors.Wrap(err, "failed to new screen")
+			}
+			screen = s
 		}
+
 		f.term = &termImpl{
 			screen: screen,
 		}
